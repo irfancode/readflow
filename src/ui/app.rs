@@ -1,12 +1,8 @@
 use anyhow::Result;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation};
-use ratatui::{Frame, Terminal, backend::CrosstermBackend};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::browser::{ContentRenderer, Fetcher, HtmlParser};
 use crate::reader::ArticleExtractor;
@@ -14,12 +10,13 @@ use crate::storage::Database;
 use crate::{Article, Feed, FeedItem, Theme, ViewMode};
 
 #[derive(Clone)]
-struct HistoryEntry {
-    url: String,
-    title: String,
-    content: String,
-    links: Vec<(String, String)>,
-    reader_content: Option<Article>,
+pub struct HistoryEntry {
+    pub url: String,
+    pub title: String,
+    pub content: String,
+    pub links: Vec<(String, String)>,
+    pub reader_content: Option<Article>,
+    #[allow(dead_code)]
     timestamp: Instant,
 }
 
@@ -609,8 +606,14 @@ impl App {
                 self.prev_search_result();
             }
             KeyCode::Char(c) => {
-                self.search_query.push(c);
-                self.perform_search();
+                if c == 'j' {
+                    self.next_search_result();
+                } else if c == 'k' {
+                    self.prev_search_result();
+                } else {
+                    self.search_query.push(c);
+                    self.perform_search();
+                }
             }
             KeyCode::Backspace => {
                 self.search_query.pop();
@@ -621,10 +624,10 @@ impl App {
                 self.search_query.clear();
                 self.search_results.clear();
             }
-            KeyCode::Char('j') | KeyCode::Down => {
+            KeyCode::Down => {
                 self.next_search_result();
             }
-            KeyCode::Char('k') | KeyCode::Up => {
+            KeyCode::Up => {
                 self.prev_search_result();
             }
             _ => {}

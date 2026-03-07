@@ -1,7 +1,5 @@
-use anyhow::Result;
 use scraper::{ElementRef, Html, Selector};
 use std::collections::HashMap;
-use tracing::debug;
 
 pub struct HtmlParser;
 

@@ -2,10 +2,9 @@ use anyhow::Result;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation};
+use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::{backend::CrosstermBackend, Frame, Terminal};
 use std::io;
-use tracing::debug;
 
 use super::app::App;
 use crate::browser::ContentRenderer;
@@ -256,7 +255,7 @@ fn render_browser_content(f: &mut Frame, app: &mut App, area: Rect) {
     }
 }
 
-fn render_welcome_screen(app: &App, area: Rect) -> Vec<String> {
+fn render_welcome_screen(_app: &App, area: Rect) -> Vec<String> {
     let width = area.width as usize;
     let mut lines = Vec::new();
 
@@ -360,7 +359,7 @@ fn render_bookmarks_content(f: &mut Frame, app: &App, area: Rect) {
         app.bookmarks
             .iter()
             .enumerate()
-            .map(|(i, (_, title, url, _))| {
+            .map(|(i, (_, title, _url, _))| {
                 let prefix = if i == app.selected_bookmark {
                     "▶"
                 } else {

@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, OptionalExtension};
-use std::path::PathBuf;
 use tracing::{debug, info};
 use uuid::Uuid;
 

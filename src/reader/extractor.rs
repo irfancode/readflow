@@ -1,7 +1,6 @@
 use anyhow::Result;
 use regex::Regex;
 use scraper::{Html, Selector};
-use tracing::{debug, info};
 
 pub struct ArticleExtractor;
 
@@ -172,7 +171,7 @@ impl ArticleExtractor {
     }
 
     fn score_content(html: &str) -> i32 {
-        let document = Html::parse_fragment(html);
+        let _document = Html::parse_fragment(html);
         let mut score = 0;
 
         let positive_patterns = [

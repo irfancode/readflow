@@ -1,8 +1,3 @@
-use ratatui::layout::Rect;
-use ratatui::style::Style;
-use ratatui::widgets::Widget;
-use ratatui::Frame;
-
 pub struct Panel;
 
 impl Panel {
