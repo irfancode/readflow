@@ -270,7 +270,7 @@ fn render_welcome_screen(_app: &App, area: Rect) -> Vec<String> {
 ║   ╚══════╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝    ║
 ║                      v0.1.0                              ║
 ║                                                           ║
-║   A modern TUI browser for Arch Linux                    ║
+║   A modern TUI browser for all platforms                 ║
 ║                                                           ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  Quick Start:                                             ║
@@ -287,8 +287,9 @@ fn render_welcome_screen(_app: &App, area: Rect) -> Vec<String> {
 
     for line in welcome.lines() {
         let trimmed = line.trim_end();
-        if trimmed.len() > width {
-            lines.push(trimmed[..width].to_string());
+        let chars: Vec<char> = trimmed.chars().collect();
+        if chars.len() > width {
+            lines.push(chars[..width].iter().collect());
         } else {
             lines.push(trimmed.to_string());
         }
