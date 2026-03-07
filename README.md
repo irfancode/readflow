@@ -5,10 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/readflow/readflow/releases/latest">
+  <a href="https://github.com/irfancode/readflow/releases/latest">
     <img src="https://img.shields.io/github/v/release/readflow/readflow?color=blue&style=flat-square" alt="Version"/>
   </a>
-  <a href="https://github.com/readflow/readflow/actions">
+  <a href="https://github.com/irfancode/readflow/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/readflow/readflow/build.yml?color=blue&style=flat-square" alt="Build"/>
   </a>
   <a href="https://crates.io/crates/readflow">
@@ -64,7 +64,7 @@ irm https://raw.githubusercontent.com/readflow/readflow/main/install-windows.ps1
 
 ```bash
 # Clone the repository
-git clone https://github.com/readflow/readflow.git
+git clone https://github.com/irfancode/readflow.git
 cd readflow
 
 # Build
@@ -335,7 +335,7 @@ HTTP_PROXY=http://proxy:8080 HTTPS_PROXY=http://proxy:8080 readflow
 ```
 
 ### Q: How do I report bugs?
-**A:** Please open an issue at https://github.com/readflow/readflow/issues
+**A:** Please open an issue at https://github.com/irfancode/readflow/issues
 
 ## Contributing
 

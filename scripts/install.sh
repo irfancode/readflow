@@ -2,12 +2,12 @@
 
 # ReadFlow Universal One-Click Installer
 # Works on Linux, macOS, and Windows (via WSL/Git Bash)
-# Usage: curl -sL https://raw.githubusercontent.com/readflow/readflow/main/install.sh | bash
+# Usage: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash
 
 set -e
 
 VERSION="0.1.0"
-REPO_URL="https://github.com/readflow/readflow"
+REPO_URL="https://github.com/irfancode/readflow"
 
 # Colors
 RED='\033[0;31m'
