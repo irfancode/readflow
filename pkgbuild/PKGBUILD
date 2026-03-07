@@ -1,0 +1,66 @@
+# Maintainer: ReadFlow Team <team@readflow.dev>
+# Contributor: Your Name <your@email>
+
+pkgname=readflow
+pkgver=0.1.0
+pkgrel=1
+epoch=
+pkgdesc="A modern TUI browser for Arch Linux - Reader's Delight"
+arch=('x86_64')
+url="https://github.com/readflow/readflow"
+license=('MIT')
+groups=()
+depends=('openssl' 'pkgconf')
+makedepends=('cargo' 'rust')
+checkdepends=()
+optdepends=(
+    'pandoc: For PDF export functionality'
+    'ollama: For AI-powered summarization'
+)
+provides=()
+conflicts=()
+replaces=()
+backup=()
+options=()
+changelog=
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+noextract=()
+validpgpkeys=()
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    cargo fetch --locked
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+    cargo build --release --locked
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    cargo test --locked
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    
+    install -Dm755 "target/release/readflow" "$pkgdir/usr/bin/readflow"
+    
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    
+    mkdir -p "$pkgdir/usr/share/applications"
+    cat > "$pkgdir/usr/share/applications/readflow.desktop" <<EOF
+[Desktop Entry]
+Name=ReadFlow
+Comment=A modern TUI browser for Arch Linux - Reader's Delight
+Exec=readflow
+Terminal=true
+Type=Application
+Categories=Network;WebBrowser;Utility;
+Keywords=browser;terminal;tui;reader;
+EOF
+}

@@ -1,0 +1,141 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ''
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            ext: ''
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ''
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ''
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: '.exe'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Add musl tools (Linux only)
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: readflow-${{ matrix.target }}${{ matrix.ext }}
+          path: |
+            target/${{ matrix.target }}/release/readflow${{ matrix.ext }}
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            readflow-*/
+            readflow-*
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  homebrew:
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Homebrew Formula
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          cat > readflow.rb << 'FORMULA'
+          class Readflow < Formula
+            desc "A modern TUI browser"
+            homepage "https://github.com/readflow/readflow"
+            url "https://github.com/readflow/readflow/archive/refs/tags/v$VERSION.tar.gz"
+            sha256 "TODO: Add SHA256"
+            license "MIT"
+          
+            depends_on "rust" => :build
+          
+            def install
+              system "cargo", "install", "--locked", "--root", prefix
+            end
+          
+            test do
+              assert_match "ReadFlow", shell_output("#{bin}/readflow --help")
+            end
+          end
+          FORMULA
+
+      - name: Upload formula
+        uses: actions/upload-artifact@v3
+        with:
+          name: homebrew-formula
+          path: readflow.rb
