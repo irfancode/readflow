@@ -40,6 +40,8 @@
 - **Bookmarks** - Save your favorite sites
 - **Feed Reader** - Subscribe to RSS/Atom feeds
 - **Article Export** - Export articles to Markdown, HTML, or plain text
+- **Tabbed Browsing** - Open multiple pages in tabs
+- **Mouse Support** - Click links and scroll with mouse
 
 ### 🔧 Technical Features
 - **Cross-platform** - Works on Linux, macOS, and Windows
@@ -132,12 +134,20 @@ readflow --debug
 | `g` | Go to top |
 | `G` | Go to bottom |
 
+### Tabs
+| Key | Action |
+|-----|--------|
+| `Ctrl+t` | New tab |
+| `Ctrl+w` | Close tab |
+| `Ctrl+n` | New tab |
+| `1-9` | Switch to tab number |
+
 ### Scrolling
 | Key | Action |
 |-----|--------|
 | `j` / `↓` | Scroll down |
 | `k` / `↑` | Scroll up |
-| `Space` | Scroll down half page |
+| Mouse Wheel | Scroll up/down |
 
 ### Links
 | Key | Action |
@@ -147,6 +157,7 @@ readflow --debug
 | `n` | Next link |
 | `N` | Previous link |
 | `Enter` | Follow selected link |
+| Mouse Click | Follow link |
 
 ### Search & Actions
 | Key | Action |

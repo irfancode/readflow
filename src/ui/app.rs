@@ -4,7 +4,7 @@ use std::time::Instant;
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
-use crate::browser::{ContentRenderer, Fetcher, HtmlParser};
+use crate::browser::{ContentRenderer, Fetcher, Form, HtmlParser};
 use crate::reader::ArticleExtractor;
 use crate::storage::Database;
 use crate::{Article, Feed, FeedItem, Theme, ViewMode};
@@ -20,14 +20,63 @@ pub struct HistoryEntry {
     timestamp: Instant,
 }
 
+#[derive(Clone)]
+pub struct Tab {
+    pub id: usize,
+    pub title: String,
+    pub url: String,
+    pub content: String,
+    pub reader_content: Option<Article>,
+    pub links: Vec<(String, String)>,
+    pub forms: Vec<Form>,
+    pub selected_link: usize,
+    pub scroll_offset: u16,
+    pub total_lines: u16,
+    pub loading: bool,
+    pub history_stack: Vec<HistoryEntry>,
+    pub history_index: isize,
+}
+
+impl Tab {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            title: String::new(),
+            url: String::new(),
+            content: String::new(),
+            reader_content: None,
+            links: Vec::new(),
+            forms: Vec::new(),
+            selected_link: 0,
+            scroll_offset: 0,
+            total_lines: 0,
+            loading: false,
+            history_stack: Vec::new(),
+            history_index: -1,
+        }
+    }
+
+    pub fn can_go_back(&self) -> bool {
+        self.history_index > 0
+    }
+
+    pub fn can_go_forward(&self) -> bool {
+        self.history_index < (self.history_stack.len() as isize - 1)
+    }
+}
+
 pub struct App {
     pub theme: Theme,
     pub view_mode: ViewMode,
+    pub tabs: Vec<Tab>,
+    pub active_tab: usize,
+    
     pub current_url: String,
     pub page_title: String,
     pub page_content: String,
     pub reader_content: Option<Article>,
     pub links: Vec<(String, String)>,
+    pub forms: Vec<Form>,
     pub selected_link: usize,
     pub scroll_offset: u16,
     pub total_lines: u16,
@@ -69,14 +118,20 @@ impl App {
         let fetcher = Fetcher::new_with_verify(!insecure).expect("Failed to create fetcher");
         let renderer = ContentRenderer::new(80, theme);
 
+        let mut initial_tab = Tab::new(0);
+        initial_tab.title = "New Tab".to_string();
+
         Self {
             theme,
             view_mode: ViewMode::Browser,
+            tabs: vec![initial_tab],
+            active_tab: 0,
             current_url: String::new(),
             page_title: String::new(),
             page_content: String::new(),
             reader_content: None,
             links: Vec::new(),
+            forms: Vec::new(),
             selected_link: 0,
             scroll_offset: 0,
             total_lines: 0,
@@ -105,6 +160,81 @@ impl App {
             width: 80,
             height: 24,
         }
+    }
+
+    pub fn get_active_tab(&self) -> &Tab {
+        &self.tabs[self.active_tab]
+    }
+
+    pub fn get_active_tab_mut(&mut self) -> &mut Tab {
+        &mut self.tabs[self.active_tab]
+    }
+
+    pub fn new_tab(&mut self) {
+        let new_id = self.tabs.len();
+        let mut tab = Tab::new(new_id);
+        tab.title = "New Tab".to_string();
+        self.tabs.push(tab);
+        self.active_tab = self.tabs.len() - 1;
+        self.sync_from_tab();
+        self.status_message = Some(format!("Opened new tab ({} tabs)", self.tabs.len()));
+    }
+
+    pub fn close_tab(&mut self) {
+        if self.tabs.len() > 1 {
+            self.tabs.remove(self.active_tab);
+            if self.active_tab >= self.tabs.len() {
+                self.active_tab = self.tabs.len() - 1;
+            }
+            self.sync_from_tab();
+            self.status_message = Some(format!("Closed tab ({} tabs remaining)", self.tabs.len()));
+        } else {
+            self.status_message = Some("Cannot close last tab".to_string());
+        }
+    }
+
+    pub fn next_tab(&mut self) {
+        if self.active_tab < self.tabs.len() - 1 {
+            self.active_tab += 1;
+            self.sync_from_tab();
+        }
+    }
+
+    pub fn prev_tab(&mut self) {
+        if self.active_tab > 0 {
+            self.active_tab -= 1;
+            self.sync_from_tab();
+        }
+    }
+
+    pub fn sync_to_tab(&mut self) {
+        let tab = &mut self.tabs[self.active_tab];
+        tab.url = self.current_url.clone();
+        tab.title = self.page_title.clone();
+        tab.content = self.page_content.clone();
+        tab.reader_content = self.reader_content.clone();
+        tab.links = self.links.clone();
+        tab.forms = self.forms.clone();
+        tab.selected_link = self.selected_link;
+        tab.scroll_offset = self.scroll_offset;
+        tab.total_lines = self.total_lines;
+        tab.loading = self.loading;
+    }
+
+    pub fn sync_from_tab(&mut self) {
+        let tab = &self.tabs[self.active_tab];
+        self.current_url = tab.url.clone();
+        self.page_title = tab.title.clone();
+        self.page_content = tab.content.clone();
+        self.reader_content = tab.reader_content.clone();
+        self.links = tab.links.clone();
+        self.forms = tab.forms.clone();
+        self.selected_link = tab.selected_link;
+        self.scroll_offset = tab.scroll_offset;
+        self.total_lines = tab.total_lines;
+        self.loading = tab.loading;
+        self.history_stack = tab.history_stack.clone();
+        self.history_index = tab.history_index;
     }
 
     pub fn get_history_info(&self) -> (usize, bool, bool) {
@@ -141,6 +271,7 @@ impl App {
         self.current_url = url.clone();
         self.page_title = parsed.title.clone();
         self.links = HtmlParser::extract_links_with_text(&response.body);
+        self.forms = parsed.forms;
         self.selected_link = 0;
         
         let reader_article = if let Ok(extracted) = ArticleExtractor::extract(&response.body, &url) {
@@ -185,6 +316,17 @@ impl App {
         }
         self.history_stack.push(entry);
         self.history_index = (self.history_stack.len() - 1) as isize;
+
+        let tab = &mut self.tabs[self.active_tab];
+        tab.url = url.clone();
+        tab.title = self.page_title.clone();
+        tab.content = self.page_content.clone();
+        tab.reader_content = self.reader_content.clone();
+        tab.links = self.links.clone();
+        tab.total_lines = self.total_lines;
+        tab.loading = false;
+        tab.history_stack = self.history_stack.clone();
+        tab.history_index = self.history_index;
 
         let db = self.db.clone();
         let db_url = url.clone();
@@ -524,17 +666,10 @@ impl App {
                     self.next_link();
                 }
             }
-            KeyCode::Char('n') => {
-                if key.modifiers.contains(KeyModifiers::SHIFT) {
-                    self.prev_link();
-                } else {
-                    self.next_link();
-                }
-            }
             KeyCode::Char('r') => {
                 self.toggle_reader_mode();
             }
-            KeyCode::Char('t') => {
+            KeyCode::Char('T') => {
                 self.cycle_theme();
             }
             KeyCode::Char('b') => {
@@ -567,6 +702,38 @@ impl App {
                     if let Err(e) = self.navigate_to(&url) {
                         self.error_message = Some(format!("Failed to reload: {}", e));
                     }
+                }
+            }
+            KeyCode::Char('n') => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.new_tab();
+                } else if key.modifiers.contains(KeyModifiers::SHIFT) {
+                    self.prev_link();
+                } else {
+                    self.next_link();
+                }
+            }
+            KeyCode::Char('N') => {
+                self.prev_link();
+            }
+            KeyCode::Char('w') => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.close_tab();
+                }
+            }
+            KeyCode::Char('t') => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.new_tab();
+                } else {
+                    self.cycle_theme();
+                }
+            }
+            KeyCode::Char(c) if c.is_ascii_digit() => {
+                let tab_num = c.to_digit(10).unwrap() as usize;
+                if tab_num > 0 && tab_num <= self.tabs.len() {
+                    self.active_tab = tab_num - 1;
+                    self.sync_from_tab();
+                    self.status_message = Some(format!("Switched to tab {}", tab_num));
                 }
             }
             KeyCode::Char(c) => {

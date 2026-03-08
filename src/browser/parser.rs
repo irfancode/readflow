@@ -14,6 +14,7 @@ impl HtmlParser {
         let scripts = Self::extract_scripts(&document);
         let styles = Self::extract_styles(&document);
         let main_content = Self::extract_main_content(&document);
+        let forms = Self::extract_forms(&document);
 
         ParsedDocument {
             title,
@@ -23,6 +24,7 @@ impl HtmlParser {
             scripts,
             styles,
             main_content,
+            forms,
             raw_html: html.to_string(),
         }
     }
@@ -225,11 +227,121 @@ impl HtmlParser {
                 .select(&sel)
                 .filter_map(|el| {
                     let href = el.value().attr("href")?;
+                    if href.starts_with('#')
+                        || href.starts_with("javascript:")
+                        || href.starts_with("mailto:")
+                    {
+                        return None;
+                    }
                     let text = el.text().collect::<String>().trim().to_string();
                     if text.is_empty() {
+                        let title = el.value().attr("title").map(|s| s.trim().to_string());
+                        if let Some(title) = title {
+                            if !title.is_empty() {
+                                return Some((href.to_string(), title));
+                            }
+                        }
                         None
                     } else {
                         Some((href.to_string(), text))
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn extract_all_links(html: &str) -> Vec<String> {
+        let document = Html::parse_document(html);
+        let selector = Selector::parse("a").ok();
+
+        if let Some(sel) = selector {
+            document
+                .select(&sel)
+                .filter_map(|el| {
+                    let href = el.value().attr("href")?;
+                    if href.starts_with('#')
+                        || href.starts_with("javascript:")
+                        || href.starts_with("mailto:")
+                    {
+                        return None;
+                    }
+                    Some(href.to_string())
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn resolve_url(base: &str, relative: &str) -> String {
+        if relative.starts_with("http://") || relative.starts_with("https://") {
+            return relative.to_string();
+        }
+
+        if relative.starts_with('/') {
+            if let Ok(base_url) = url::Url::parse(base) {
+                if let Some(host) = base_url.host_str() {
+                    let scheme = base_url.scheme();
+                    return format!("{}://{}{}", scheme, host, relative);
+                }
+            }
+        }
+
+        if let Ok(base_url) = url::Url::parse(base) {
+            if let Ok(resolved) = base_url.join(relative) {
+                return resolved.to_string();
+            }
+        }
+
+        relative.to_string()
+    }
+
+    pub fn extract_forms(document: &Html) -> Vec<Form> {
+        let selector = Selector::parse("form").ok();
+
+        if let Some(sel) = selector {
+            document
+                .select(&sel)
+                .map(|form_el| {
+                    let action = form_el.value().attr("action").unwrap_or("").to_string();
+                    let method = form_el
+                        .value()
+                        .attr("method")
+                        .unwrap_or("get")
+                        .to_lowercase();
+
+                    let mut inputs = Vec::new();
+                    let input_sel = Selector::parse("input").ok();
+                    if let Some(is) = input_sel {
+                        for input in form_el.select(&is) {
+                            let name = input.value().attr("name").unwrap_or("").to_string();
+                            let input_type =
+                                input.value().attr("type").unwrap_or("text").to_lowercase();
+                            let value = input.value().attr("value").unwrap_or("").to_string();
+                            let placeholder =
+                                input.value().attr("placeholder").unwrap_or("").to_string();
+
+                            if !name.is_empty()
+                                && input_type != "submit"
+                                && input_type != "button"
+                                && input_type != "hidden"
+                            {
+                                inputs.push(FormInput {
+                                    name,
+                                    input_type,
+                                    value,
+                                    placeholder,
+                                });
+                            }
+                        }
+                    }
+
+                    Form {
+                        action,
+                        method,
+                        inputs,
                     }
                 })
                 .collect()
@@ -248,6 +360,7 @@ pub struct ParsedDocument {
     pub scripts: Vec<String>,
     pub styles: Vec<String>,
     pub main_content: String,
+    pub forms: Vec<Form>,
     pub raw_html: String,
 }
 
@@ -263,4 +376,19 @@ pub struct Image {
     pub src: String,
     pub alt: String,
     pub title: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Form {
+    pub action: String,
+    pub method: String,
+    pub inputs: Vec<FormInput>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FormInput {
+    pub name: String,
+    pub input_type: String,
+    pub value: String,
+    pub placeholder: String,
 }

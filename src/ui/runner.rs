@@ -16,6 +16,8 @@ pub fn run_app(mut app: App) -> Result<()> {
 
     terminal.clear()?;
 
+    crossterm::execute!(io::stdout(), crossterm::event::EnableMouseCapture)?;
+
     loop {
         let size = terminal.size()?;
         app.update_size(size.width, size.height);
@@ -34,10 +36,47 @@ pub fn run_app(mut app: App) -> Result<()> {
             if let crossterm::event::Event::Resize(w, h) = event {
                 app.update_size(w, h);
             }
+
+            if let crossterm::event::Event::Mouse(mouse_event) = event {
+                handle_mouse_event(&mut app, mouse_event);
+            }
         }
     }
 
+    crossterm::execute!(io::stdout(), crossterm::event::DisableMouseCapture)?;
+
     Ok(())
+}
+
+fn handle_mouse_event(app: &mut App, event: crossterm::event::MouseEvent) {
+    match event.kind {
+        crossterm::event::MouseEventKind::ScrollUp => {
+            for _ in 0..3 {
+                app.scroll_up();
+            }
+        }
+        crossterm::event::MouseEventKind::ScrollDown => {
+            for _ in 0..3 {
+                app.scroll_down();
+            }
+        }
+        crossterm::event::MouseEventKind::Down(_) => {
+            let content_area_y = 4;
+            if event.row >= content_area_y && event.row < app.height - 1 {
+                let link_count = app.links.len();
+                if link_count > 0 {
+                    let links_start = app.height.saturating_sub(5);
+                    if event.row >= links_start {
+                        let clicked_link =
+                            (event.row - links_start).min(link_count as u16 - 1) as usize;
+                        app.selected_link = clicked_link;
+                        app.follow_link();
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 fn render_app(f: &mut Frame, app: &mut App) {
@@ -68,6 +107,45 @@ fn render_app(f: &mut Frame, app: &mut App) {
 }
 
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(30), Constraint::Min(0)])
+        .split(area);
+
+    render_tab_bar(f, app, chunks[0]);
+    render_url_bar(f, app, chunks[1]);
+}
+
+fn render_tab_bar(f: &mut Frame, app: &App, area: Rect) {
+    let mut spans: Vec<Span> = Vec::new();
+    for (i, tab) in app.tabs.iter().enumerate() {
+        let is_active = i == app.active_tab;
+        let title = if tab.title.is_empty() {
+            "New Tab".to_string()
+        } else if tab.title.len() > 12 {
+            format!("{}...", &tab.title[..9])
+        } else {
+            tab.title.clone()
+        };
+
+        if is_active {
+            spans.push(Span::styled(
+                format!("[{}] ", title),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::raw(format!("{} ", title)));
+        }
+    }
+
+    let line = Line::from(spans);
+    let paragraph = Paragraph::new(line).style(Style::default().fg(get_text_color(app.theme)));
+    f.render_widget(paragraph, area);
+}
+
+fn render_url_bar(f: &mut Frame, app: &App, area: Rect) {
     let mode_indicator = match app.view_mode {
         crate::ViewMode::Browser => {
             if app.loading {
@@ -535,14 +613,22 @@ fn render_help_popup(f: &mut Frame, app: &App) {
         Line::from(Span::raw("  n/N           Next/previous search result")),
         Line::from(Span::raw("")),
         Line::from(Span::styled(
+            "  Tabs",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::raw("  ─────────────────────────────")),
+        Line::from(Span::raw("  Ctrl+t        New tab")),
+        Line::from(Span::raw("  Ctrl+w        Close tab")),
+        Line::from(Span::raw("  Ctrl+n        New tab")),
+        Line::from(Span::raw("  1-9           Switch to tab number")),
+        Line::from(Span::raw("")),
+        Line::from(Span::styled(
             "  Links",
             Style::default().add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::raw("  ─────────────────────────────")),
         Line::from(Span::raw("  Tab           Next link")),
         Line::from(Span::raw("  Shift+Tab     Previous link")),
-        Line::from(Span::raw("  n             Next link")),
-        Line::from(Span::raw("  N             Previous link")),
         Line::from(Span::raw("  Enter         Follow selected link")),
         Line::from(Span::raw("")),
         Line::from(Span::styled(

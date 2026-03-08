@@ -3,5 +3,5 @@ pub mod parser;
 pub mod renderer;
 
 pub use fetcher::Fetcher;
-pub use parser::HtmlParser;
+pub use parser::{Form, FormInput, HtmlParser};
 pub use renderer::ContentRenderer;
