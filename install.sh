@@ -2,8 +2,9 @@
 
 # ReadFlow Universal One-Click Installer/Uninstaller
 # Works on Linux, macOS, and Windows (via WSL/Git Bash)
-# Usage: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash
+# Install: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash
 # Uninstall: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash -s -- --uninstall
+# Updated: 2025-03-08
 
 set -e
 
