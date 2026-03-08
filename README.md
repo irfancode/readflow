@@ -48,10 +48,13 @@
 
 ```bash
 # Linux/macOS
-curl -sL https://raw.githubusercontent.com/readflow/readflow/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash
+
+# Uninstall
+curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash -s -- --uninstall
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/readflow/readflow/main/install-windows.ps1 | iex
+irm https://raw.githubusercontent.com/irfancode/readflow/main/install-windows.ps1 | iex
 ```
 
 ### From Source
@@ -68,21 +71,14 @@ cargo build --release
 cargo install --path .
 ```
 
-### Package Managers
+### Uninstall
 
-#### Homebrew (macOS)
 ```bash
-brew install readflow
-```
+# Linux/macOS (if installed via our installer)
+curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash -s -- --uninstall
 
-#### Arch Linux (AUR)
-```bash
-yay -S readflow
-```
-
-#### Debian/Ubuntu
-```bash
-sudo apt install readflow
+# From source (if installed via cargo install)
+cargo uninstall readflow
 ```
 
 ## Usage
@@ -244,7 +240,7 @@ readflow/
 │   └── export/          # Export functionality
 │       └── exporter.rs  # Article export
 ├── scripts/             # Installation scripts
-├── assets/              # Images & resources
+├── install.sh           # One-click installer
 └── Cargo.toml          # Dependencies
 ```
 

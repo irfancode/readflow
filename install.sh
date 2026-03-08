@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# ReadFlow Universal One-Click Installer
+# ReadFlow Universal One-Click Installer/Uninstaller
 # Works on Linux, macOS, and Windows (via WSL/Git Bash)
 # Usage: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash
+# Uninstall: curl -sL https://raw.githubusercontent.com/irfancode/readflow/main/install.sh | bash -s -- --uninstall
 
 set -e
 
@@ -15,6 +16,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+
+# Check for uninstall flag
+UNINSTALL=false
+for arg in "$@"; do
+    if [ "$arg" = "--uninstall" ] || [ "$arg" = "-u" ]; then
+        UNINSTALL=true
+    fi
+done
 
 echo -e "${BLUE}"
 echo "    ___"
@@ -51,6 +60,75 @@ detect_os() {
 
 OS=$(detect_os)
 echo -e "${GREEN}Detected OS: $OS${NC}"
+
+# Uninstall ReadFlow
+uninstall_readflow() {
+    echo -e "${YELLOW}Uninstalling ReadFlow...${NC}"
+    
+    case $OS in
+        linux-*)
+            if [ -f /usr/local/bin/readflow ]; then
+                sudo rm -f /usr/local/bin/readflow
+                echo -e "${GREEN}Removed /usr/local/bin/readflow${NC}"
+            elif [ -f ~/.local/bin/readflow ]; then
+                rm -f ~/.local/bin/readflow
+                echo -e "${GREEN}Removed ~/.local/bin/readflow${NC}"
+            fi
+            ;;
+        macos)
+            if [ -f /usr/local/bin/readflow ]; then
+                sudo rm -f /usr/local/bin/readflow
+                echo -e "${GREEN}Removed /usr/local/bin/readflow${NC}"
+            elif [ -f ~/.local/bin/readflow ]; then
+                rm -f ~/.local/bin/readflow
+                echo -e "${GREEN}Removed ~/.local/bin/readflow${NC}"
+            fi
+            ;;
+        windows)
+            if [ -f "$LOCALAPPDATA/ReadFlow/readflow.exe" ]; then
+                rm -f "$LOCALAPPDATA/ReadFlow/readflow.exe"
+                echo -e "${GREEN}Removed $LOCALAPPDATA/ReadFlow/readflow.exe${NC}"
+            fi
+            ;;
+    esac
+
+    echo ""
+    echo -e "${YELLOW}Do you want to remove all ReadFlow data (bookmarks, history, settings)?${NC}"
+    echo -e "${YELLOW}This cannot be undone!${NC}"
+    read -p "Type 'yes' to confirm: " confirm
+    
+    if [ "$confirm" = "yes" ]; then
+        case $OS in
+            linux-*|macos)
+                rm -rf "$HOME/.config/readflow"
+                rm -rf "$HOME/.local/share/readflow"
+                rm -rf "$HOME/.cache/readflow"
+                echo -e "${GREEN}Removed configuration and data${NC}"
+                ;;
+            windows)
+                rm -rf "$APPDATA/readflow"
+                rm -rf "$LOCALAPPDATA/ReadFlow"
+                echo -e "${GREEN}Removed configuration and data${NC}"
+                ;;
+        esac
+    else
+        echo -e "${GREEN}Kept configuration and data${NC}"
+    fi
+
+    if [ -d "readflow" ]; then
+        rm -rf readflow
+        echo -e "${GREEN}Removed build directory${NC}"
+    fi
+
+    echo ""
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗"
+    echo "║                                                           ║"
+    echo "║   ✓ ReadFlow uninstalled successfully!                   ║"
+    echo "║                                                           ║"
+    echo "╚═══════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+    exit 0
+}
 
 # Check prerequisites
 check_prerequisites() {
@@ -169,6 +247,10 @@ EOF
 
 # Main
 main() {
+    if [ "$UNINSTALL" = true ]; then
+        uninstall_readflow
+    fi
+    
     check_prerequisites
     install_deps
     install_rust
@@ -196,6 +278,9 @@ main() {
     echo "║     b    Add bookmark                                        ║"
     echo "║     ?    Help                                               ║"
     echo "║     q    Quit                                               ║"
+    echo "║                                                           ║"
+    echo "║   Uninstall:                                               ║"
+    echo "║     curl -sL .../install.sh | bash -s -- --uninstall       ║"
     echo "║                                                           ║"
     echo "╚═══════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
