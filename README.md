@@ -1,8 +1,4 @@
-# ReadFlow 🦊
-
-<p align="center">
-  <img src="assets/logo.png" alt="ReadFlow Logo" width="200"/>
-</p>
+# ReadFlow
 
 <p align="center">
   <a href="https://github.com/irfancode/readflow/releases/latest">
@@ -24,10 +20,6 @@
 ## What is ReadFlow?
 
 **ReadFlow** is a modern, lightweight TUI (Terminal User Interface) web browser written in Rust. Designed for power users, developers, and anyone who prefers a keyboard-driven browsing experience.
-
-<p align="center">
-  <img src="assets/screenshot-main.png" alt="ReadFlow Main Screen" width="800"/>
-</p>
 
 ## Features
 
@@ -226,38 +218,6 @@ ReadFlow stores all data locally:
 | Database | `~/.local/share/readflow/readflow.db` |
 | Cache | `~/.cache/readflow` |
 | Logs | `~/.local/share/readflow/logs` |
-
-## Screenshots
-
-### Welcome Screen
-<p align="center">
-  <img src="assets/screenshot-welcome.png" alt="Welcome Screen" width="800"/>
-</p>
-
-### Browser Mode
-<p align="center">
-  <img src="assets/screenshot-browser.png" alt="Browser Mode" width="800"/>
-</p>
-
-### Reader Mode
-<p align="center">
-  <img src="assets/screenshot-reader.png" alt="Reader Mode" width="800"/>
-</p>
-
-### Light Theme
-<p align="center">
-  <img src="assets/screenshot-light.png" alt="Light Theme" width="800"/>
-</p>
-
-### Search
-<p align="center">
-  <img src="assets/screenshot-search.png" alt="Search" width="800"/>
-</p>
-
-### Help
-<p align="center">
-  <img src="assets/screenshot-help.png" alt="Help" width="800"/>
-</p>
 
 ## Architecture
 
